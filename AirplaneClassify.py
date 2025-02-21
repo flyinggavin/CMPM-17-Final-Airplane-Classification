@@ -14,15 +14,19 @@ print(df.info())
 print(df.head())
 
 #read the test manufacture text as a dataframe 
-df_test_manufacturer = pd.read_csv(testTXT)
+df_test_manufacturer = pd.read_csv(testTXT, header=None, names =["plane type"])
 print(df_test_manufacturer.info())
 
 #remove the .jpg from filename of the df so ID can match with manufacture df 
-df = df.replace(".jpg","",regex=True)
-print(df.head()) 
+#df = df.replace(".jpg","",regex=True)
 
-df = df.join()
+df_test_manufacturer = df_test_manufacturer.loc[:,"plane type"].str.split(pat = ' ', n=1)
+print(" ")
 
+print(df_test_manufacturer)
+
+# df = df.join(df_test_manufacturer)
+# print(df.head()) 
 
 
 
