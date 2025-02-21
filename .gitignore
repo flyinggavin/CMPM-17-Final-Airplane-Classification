@@ -3,5 +3,5 @@ train.csv
 val.csv
 hidden.py
 Final Project Data
-__pycache__
+__pycache__/
 
