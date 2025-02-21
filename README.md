@@ -28,4 +28,3 @@ df = df.join(df.num, "colomn match")
 3. replace .jpg
 
 https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.join.html
-
