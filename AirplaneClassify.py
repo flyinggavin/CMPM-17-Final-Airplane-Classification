@@ -25,8 +25,9 @@ print(" ")
 
 print(df_test_manufacturer)
 
-# df = df.join(df_test_manufacturer)
-# print(df.head()) 
+#combines manufactuer with df 
+df = df.join(df_test_manufacturer)
+print(df.head()) 
 
 
 
