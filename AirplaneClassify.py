@@ -1,12 +1,13 @@
 import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
-import torch
+from torch.utils.data import Dataset, DataLoader
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import math
 from PIL import Image
 from hidden import dataset_path, testTXT, dataset_path_train, trainTXT
+
 
 ##########TEST DATA##################
 #ClEANING DATA SET
@@ -60,7 +61,7 @@ print("train data set: ", dftrain.head())
 #         self.length = len(df)
 #         self.data=df
 #     def __len__(self):
-#         return self.length``
+#         return self.length
 #     def __getitem__(self, idx):
 #         inputCols = [0]
 #         outputCols = [1]
