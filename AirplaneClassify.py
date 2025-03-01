@@ -6,7 +6,7 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import math
 from PIL import Image
-from hidden import dataset_path, testTXT, dataset_path_train, trainTXT
+from hidden import dataset_path, testTXT, dataset_path_train, trainTXT, dataset_path_val, valTXT
 
 
 ##########TEST DATA##################
@@ -44,10 +44,42 @@ dftrain['plane type'] = dftrain["plane type"].apply(lambda x:x[1:])
 dftrain['plane type'] = dftrain["plane type"].apply(lambda x:"".join(x))
 dftrain = dftrain.drop(columns=["Classes", "Labels"]) #remove unnecessary coloums 
 
+
+####VAL DATA SET########
+dfval = pd.read_csv(dataset_path_val)
+df_val_manufacturer = pd.read_csv(valTXT, header=None, names =["plane type"])
+df_val_manufacturer = df_val_manufacturer.loc[:,"plane type"].str.split(pat = ' ', n=1)
+dfval = dfval.join(df_val_manufacturer)
+
+dfval['plane type'] = dfval["plane type"].apply(lambda x:x[1:])
+dfval['plane type'] = dfval["plane type"].apply(lambda x:"".join(x))
+dfval = dfval.drop(columns=["Classes", "Labels"]) #remove unnecessary coloums 
+
 print("test data set: ", df.head())
 print("")
+print("val data set: ", dfval.head())
+print("")
 print("train data set: ", dftrain.head())
+print(dftrain.info())
+print("")
 
+
+#######COMBINED VAL WITH TRAIN TO MAKE FULL TRIAN DATA SET##############
+dftrain = pd.concat([dftrain, dfval], ignore_index=True)
+
+###FACOTIRIZE PLANE TYPES #### for training
+dftrain["plane type"] = dftrain["plane type"].factorize()[0]
+dftrain["filename"] = dftrain["filename"].astype("string")
+print("FULL train data set: ")
+print(dftrain.head())
+print(dftrain.info())
+
+
+
+# print(df.shape[0]) # num of rows
+# print(df.size) # tot num of elemnts 
+
+#####PLOTTING DATA##############
 # for i in range(1, 51):
 #     plt.subplot(5, 10, i)
 #     plt.imshow(Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/fgvc-aircraft-2013b/data/images/{df.loc[i, "filename"]}.jpg"))
@@ -56,29 +88,37 @@ print("train data set: ", dftrain.head())
 # plt.tight_layout()
 # plt.show()
 
-# class MyDataset(Dataset):
-#     def __init__(self):
-#         self.length = len(df)
-#         self.data=df
-#     def __len__(self):
-#         return self.length
-#     def __getitem__(self, idx):
-#         inputCols = [0]
-#         outputCols = [1]
+#################IMAGE PROCESSING/ DATA LOADER###############
+class MyDataset(Dataset):
+    def __init__(self):
+        self.length = df.shape[0] #return numbe rof rows 
+        self.data = df
+
+    def __len__(self):
+        return self.length
         
-#         input = self.data.iloc[idx, inputCols]
-#         output = self.data.iloc[idx, outputCols]
-
-#         input = input.to_numpy(dtype="float64")
-#         output = output.to_numpy(dtype="float64")
-
-#         return input, output
+    def __getitem__(self, idx):
+        output = self.data.loc[idx, "plane type"]
+        input = self.data.loc[idx, "filename"]
+        return input, output 
     
-# my_dataset = MyDataset()
+        # inputCols = [0]
+        # outputCols = [1]
+        
+        # input = self.data.iloc[idx, inputCols]
+        # output = self.data.iloc[idx, outputCols]
 
-# dataloader = DataLoader(my_dataset, batch_size=32, shuffle=True)
-# for train_x, train_y in dataloader:
-#      print(train_x.shape, train_y.shape)
+        # input = input.to_numpy(dtype="float64")
+        # output = output.to_numpy(dtype="float64")
+
+        # return input, output
+    
+my_dataset = MyDataset()
+dataloader = DataLoader(my_dataset, batch_size=32, shuffle=True)
+
+for x, y in dataloader:
+     print(x.shape())
+     print(y.shape())
 
 
 
