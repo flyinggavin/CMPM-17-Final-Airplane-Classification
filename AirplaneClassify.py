@@ -6,40 +6,46 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import math
 from PIL import Image
-from hidden import dataset_path, testTXT
+from hidden import dataset_path, testTXT, dataset_path_train, trainTXT
 
-
+##########TEST DATA##################
 #ClEANING DATA SET
-df = pd.read_csv(dataset_path)
-print(df.info())
-print(df.head())
+df = pd.read_csv(dataset_path) #test data 
 
 #read the test manufacture text as a dataframe 
 df_test_manufacturer = pd.read_csv(testTXT, header=None, names =["plane type"])
-print(df_test_manufacturer.info())
 
 #remove the .jpg from filename of the df so ID can match with manufacture df 
 #df = df.replace(".jpg","",regex=True)
-
-df_test_manufacturer = df_test_manufacturer.loc[:,"plane type"].str.split(pat = ' ', n=1)
-print(" ")
-
-print(df_test_manufacturer)
+df_test_manufacturer = df_test_manufacturer.loc[:,"plane type"].str.split(pat = ' ', n=1) #split space since txt uses sapce
 
 #combines manufactuer with df 
 df = df.join(df_test_manufacturer)
-print(df.head()) 
 
 
 #removing the image/plane id from plane type colum
 df['plane type'] = df["plane type"].apply(lambda x:x[1:])
 df['plane type'] = df["plane type"].apply(lambda x:"".join(x))
-print(df['plane type'])
 
 df = df.drop(columns=["Classes", "Labels"]) #remove unnecessary coloums 
 
 
 print(df.head())
+
+##########TRAIN DATA##################
+dftrain = pd.read_csv(dataset_path_train) #trian dataset
+df_train_manufacturer = pd.read_csv(trainTXT, header=None, names =["plane type"])
+df_train_manufacturer = df_train_manufacturer.loc[:,"plane type"].str.split(pat = ' ', n=1) #splits image number and manufacture and puts them into list
+dftrain = dftrain.join(df_train_manufacturer) #joins boht df into one
+#cleaning 
+#removing the image/plane id from plane type colum
+dftrain['plane type'] = dftrain["plane type"].apply(lambda x:x[1:])
+dftrain['plane type'] = dftrain["plane type"].apply(lambda x:"".join(x))
+dftrain = dftrain.drop(columns=["Classes", "Labels"]) #remove unnecessary coloums 
+
+print("test data set: ", df.head())
+print("")
+print("train data set: ", dftrain.head())
 
 #########DISPLAY IMAGES############
 # for i in range(1, 26):
@@ -50,4 +56,6 @@ print(df.head())
 #     plt.title(df.loc[i, "plane type"])
 # plt.tight_layout()
 # plt.show()
+
+
 
