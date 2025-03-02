@@ -2,6 +2,7 @@ import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
+from torchvision.transforms import v2
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import math
@@ -69,7 +70,7 @@ dftrain = pd.concat([dftrain, dfval], ignore_index=True)
 
 ###FACOTIRIZE PLANE TYPES #### for training
 dftrain["plane type"] = dftrain["plane type"].factorize()[0]
-dftrain["filename"] = dftrain["filename"].astype("string")
+dftrain["filename"] = dftrain["filename"].astype(str)
 print("FULL train data set: ")
 print(dftrain.head())
 print(dftrain.info())
@@ -91,34 +92,35 @@ print(dftrain.info())
 #################IMAGE PROCESSING/ DATA LOADER###############
 class MyDataset(Dataset):
     def __init__(self):
-        self.length = df.shape[0] #return numbe rof rows 
-        self.data = df
+        self.length = len(dftrain) #return number of rows 
+        self.data = dftrain
 
     def __len__(self):
         return self.length
         
     def __getitem__(self, idx):
-        output = self.data.loc[idx, "plane type"]
-        input = self.data.loc[idx, "filename"]
-        return input, output 
-    
-        # inputCols = [0]
-        # outputCols = [1]
-        
-        # input = self.data.iloc[idx, inputCols]
-        # output = self.data.iloc[idx, outputCols]
+        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
+        label = self.data.iloc[idx, [1]]
 
-        # input = input.to_numpy(dtype="float64")
-        # output = output.to_numpy(dtype="float64")
+        transforms = v2.Compose([
+        v2.ToTensor(),
+        v2.RandomRotation([-45, 45]),
+        v2.RandomGrayscale(),
+        v2.GaussianBlur(1),
+        v2.Resize([1000, 750])
+        ])
 
-        # return input, output
+        img = transforms(img)
+        label = label.to_numpy(dtype="float64")
+
+        return img, label
     
 my_dataset = MyDataset()
 dataloader = DataLoader(my_dataset, batch_size=32, shuffle=True)
 
 for x, y in dataloader:
-     print(x.shape())
-     print(y.shape())
+     print(x.shape)
+     print(y.shape)
 
 
 
