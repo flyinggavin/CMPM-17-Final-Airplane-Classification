@@ -35,10 +35,10 @@ df = df.drop(columns=["Classes", "Labels"]) #remove unnecessary coloums
 print(df.head())
 
 ##########TRAIN DATA##################
-dftrain = pd.read_csv(dataset_path_train) #trian dataset
+dftrain = pd.read_csv(dataset_path_train) #trial dataset
 df_train_manufacturer = pd.read_csv(trainTXT, header=None, names =["plane type"])
 df_train_manufacturer = df_train_manufacturer.loc[:,"plane type"].str.split(pat = ' ', n=1) #splits image number and manufacture and puts them into list
-dftrain = dftrain.join(df_train_manufacturer) #joins boht df into one
+dftrain = dftrain.join(df_train_manufacturer) #joins both df into one
 #cleaning 
 #removing the image/plane id from plane type colum
 dftrain['plane type'] = dftrain["plane type"].apply(lambda x:x[1:])
@@ -75,6 +75,8 @@ print("FULL train data set: ")
 print(dftrain.head())
 print(dftrain.info())
 
+df["plane type"] = df["plane type"].factorize()[0]
+df["filename"] = df["filename"].astype(str)
 
 
 # print(df.shape[0]) # num of rows
@@ -91,9 +93,9 @@ print(dftrain.info())
 
 #################IMAGE PROCESSING/ DATA LOADER###############
 class MyDataset(Dataset):
-    def __init__(self):
-        self.length = len(dftrain) #return number of rows 
-        self.data = dftrain
+    def __init__(self, data_frame):
+        self.length = len(data_frame) #return number of rows 
+        self.data = data_frame
 
     def __len__(self):
         return self.length
@@ -115,12 +117,17 @@ class MyDataset(Dataset):
 
         return img, label
     
-my_dataset = MyDataset()
+my_dataset = MyDataset(dftrain)
 dataloader = DataLoader(my_dataset, batch_size=32, shuffle=True)
 
 for x, y in dataloader:
      print(x.shape)
      print(y.shape)
 
+my_dataset_test = MyDataset(df)
+dataloader_test = DataLoader(my_dataset_test, batch_size=32, shuffle=True)
 
+for x, y in dataloader_test:
+     print(x.shape)
+     print(y.shape)
 
