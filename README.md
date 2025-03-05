@@ -7,24 +7,48 @@ Manufacturer:
 2. Boeing 
 3. Cessna
 4. Embraer 
-5. DC 
+5. DC mcdonald doulas
 6. CRJ 
 
 Alternatvive
 1. Short Range
 2. Long Range 
 
-
-replace (70* re)
-
-df["manufac"] = 
-
-pandas dataframe inner join
-
-df = df.join(df.num, "colomn match")
-
-1. use .join to to add df with manufacture
-2. imagen filename correlated to mnaufacture 7 numbers
-3. replace .jpg
+Augmentations:
+1. rotation
+2. grey
+3. blurr
 
 https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.join.html
+
+Manufacture to remove are started (*): 
+ATR* 
+    Airbus
+Antonov*
+Beechcraft*
+    Boeing
+    Bombardier Aerospace
+British Aerospace*
+Canadair*
+    Cessna
+Cirrus Aircraft*
+Dassault Aviation*
+Dornier*
+Douglas Aircraft Company*
+    Embraer
+Eurofighter*
+Fairchild*
+Fokker*
+Gulfstream Aerospace*
+Ilyushin*
+Lockheed Corporation*
+Lockheed Martin*
+    McDonnell Douglas
+Panavia*
+Piper*
+Robin*
+Saab*
+Supermarine*
+Tupolev*
+Yakovlev*
+de Havilland*

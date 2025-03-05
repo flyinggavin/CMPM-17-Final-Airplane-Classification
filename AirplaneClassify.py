@@ -12,7 +12,7 @@ from hidden import dataset_path, testTXT, dataset_path_train, trainTXT, dataset_
 
 ##########TEST DATA##################
 #ClEANING DATA SET
-df = pd.read_csv(dataset_path) #test data 
+dftest = pd.read_csv(dataset_path) #test data 
 
 #read the test manufacture text as a dataframe 
 df_test_manufacturer = pd.read_csv(testTXT, header=None, names =["plane type"])
@@ -22,17 +22,17 @@ df_test_manufacturer = pd.read_csv(testTXT, header=None, names =["plane type"])
 df_test_manufacturer = df_test_manufacturer.loc[:,"plane type"].str.split(pat = ' ', n=1) #split space since txt uses sapce
 
 #combines manufactuer with df 
-df = df.join(df_test_manufacturer)
+dftest = dftest.join(df_test_manufacturer)
 
 
 #removing the image/plane id from plane type colum
-df['plane type'] = df["plane type"].apply(lambda x:x[1:])
-df['plane type'] = df["plane type"].apply(lambda x:"".join(x))
+dftest['plane type'] = dftest["plane type"].apply(lambda x:x[1:])
+dftest['plane type'] = dftest["plane type"].apply(lambda x:"".join(x))
 
-df = df.drop(columns=["Classes", "Labels"]) #remove unnecessary coloums 
+dftest = dftest.drop(columns=["Classes", "Labels"]) #remove unnecessary coloums 
 
 
-print(df.head())
+print(dftest.head())
 
 ##########TRAIN DATA##################
 dftrain = pd.read_csv(dataset_path_train) #trial dataset
@@ -56,7 +56,7 @@ dfval['plane type'] = dfval["plane type"].apply(lambda x:x[1:])
 dfval['plane type'] = dfval["plane type"].apply(lambda x:"".join(x))
 dfval = dfval.drop(columns=["Classes", "Labels"]) #remove unnecessary coloums 
 
-print("test data set: ", df.head())
+print("test data set: ", dftest.head())
 print("")
 print("val data set: ", dfval.head())
 print("")
@@ -68,6 +68,37 @@ print("")
 #######COMBINED VAL WITH TRAIN TO MAKE FULL TRIAN DATA SET##############
 dftrain = pd.concat([dftrain, dfval], ignore_index=True)
 
+
+#####REMOVE MANUFACTURES WE DONT WANT######
+
+#for test data set
+select = []
+row = 0
+for i in dftest.iterrows():
+    if (dftest.loc[row,"plane type"] == "Airbus" or dftest.loc[row,"plane type"] == "Boeing" or dftest.loc[row,"plane type"] == "Bombardier Aerospace" or dftest.loc[row,"plane type"] == "Cessna" or dftest.loc[row,"plane type"] == "Embraer" or dftest.loc[row,"plane type"] == "McDonnell Douglas"):
+        select.append(True)
+        row += 1
+    else:
+        select.append(False)
+        row += 1
+dftest = dftest.loc[select]
+
+#for train data set
+select = []
+row = 0
+for i in dftrain.iterrows():
+    if (dftrain.loc[row,"plane type"] == "Airbus" or dftrain.loc[row,"plane type"] == "Boeing" or dftrain.loc[row,"plane type"] == "Bombardier Aerospace" or dftrain.loc[row,"plane type"] == "Cessna" or dftrain.loc[row,"plane type"] == "Embraer" or dftrain.loc[row,"plane type"] == "McDonnell Douglas"):
+        select.append(True)
+        row += 1
+    else:
+        select.append(False)
+        row += 1
+dftrain = dftrain.loc[select]
+
+print("unique train vals:", (dftest["plane type"].unique()))
+print("unique tests vals:", (dftest["plane type"].unique()))
+
+
 ###FACOTIRIZE PLANE TYPES #### for training
 dftrain["plane type"] = dftrain["plane type"].factorize()[0]
 dftrain["filename"] = dftrain["filename"].astype(str)
@@ -75,23 +106,23 @@ print("FULL train data set: ")
 print(dftrain.head())
 print(dftrain.info())
 
-df["plane type"] = df["plane type"].factorize()[0]
-df["filename"] = df["filename"].astype(str)
+dftest["plane type"] = dftest["plane type"].factorize()[0]
+dftest["filename"] = dftest["filename"].astype(str)
 
 
-# print(df.shape[0]) # num of rows
-# print(df.size) # tot num of elemnts 
+print(dftest.shape[0]) # num of rows
+print(dftest.size) # tot num of elemnts 
 
 #####PLOTTING DATA##############
 # for i in range(1, 51):
 #     plt.subplot(5, 10, i)
 #     plt.imshow(Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/fgvc-aircraft-2013b/data/images/{df.loc[i, "filename"]}.jpg"))
 #     plt.axis("off")
-#     plt.title(df.loc[i, "Classes"])
+#     plt.title(dftest.loc[i, "Classes"])
 # plt.tight_layout()
 # plt.show()
 
-#################IMAGE PROCESSING/ DATA LOADER###############
+################IMAGE PROCESSING/ DATA LOADER###############
 class MyDataset(Dataset):
     def __init__(self, data_frame):
         self.length = len(data_frame) #return number of rows 
@@ -101,7 +132,7 @@ class MyDataset(Dataset):
         return self.length
         
     def __getitem__(self, idx):
-        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
+        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/archive/fgvc-aircraft-2013b/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
         label = self.data.iloc[idx, [1]]
 
         transforms = v2.Compose([
@@ -124,7 +155,7 @@ for x, y in dataloader:
      print(x.shape)
      print(y.shape)
 
-my_dataset_test = MyDataset(df)
+my_dataset_test = MyDataset(dftest)
 dataloader_test = DataLoader(my_dataset_test, batch_size=32, shuffle=True)
 
 for x, y in dataloader_test:
