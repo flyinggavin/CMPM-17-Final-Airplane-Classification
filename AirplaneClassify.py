@@ -162,3 +162,20 @@ for x, y in dataloader_test:
      print(x.shape)
      print(y.shape)
 
+#################CNN MODEL###############
+class airplaneCNN(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
+
+        self.relu = nn.ReLU()
+        self.pool = nn.MaxPool2d(2, 2)
+
+        self.linear1 = nn.Linear(32 * 1000 * 750, 1000)
+        self.linear
+
+    def forward(self, input):
+        pass
