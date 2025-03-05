@@ -90,6 +90,16 @@ df["filename"] = df["filename"].astype(str)
 #     plt.title(df.loc[i, "Classes"])
 # plt.tight_layout()
 # plt.show()
+#################MODEL###############
+class airplaneNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=0)
+        self.relu = nn.ReLU()
+        self.pool = nn.MaxPool2d(2, 2)
+        self.linear1 = nn.Linear(32 * 1000 * 750, 1000)
+    def forward(self, input):
+        pass
 
 #################IMAGE PROCESSING/ DATA LOADER###############
 class MyDataset(Dataset):
