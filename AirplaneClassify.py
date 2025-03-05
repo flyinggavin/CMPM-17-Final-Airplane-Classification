@@ -175,7 +175,27 @@ class airplaneCNN(nn.Module):
         self.pool = nn.MaxPool2d(2, 2)
 
         self.linear1 = nn.Linear(32 * 1000 * 750, 1000)
-        
+        self.linear2 = nn.Linear(1000, 2050)
+        self.linear3 = nn.Linear(2050, 10)
 
     def forward(self, input):
-        pass
+        input = self.conv1(input)
+        input = self.relu(input)
+        input = self.conv2(input)
+        input = self.relu(input)
+        input = self.pool(input)
+
+        input = self.conv3(input)
+        input = self.relu(input)
+        input = self.pool(input)
+
+        input = input.flatten(start_dim=1)
+        input = self.linear1(input)
+        input = self.relu(input)
+        input = self.linear2(input)
+        input = self.relu(input)
+        input = self.linear3(input)
+        input = self.relu(input)
+
+        return input
+
