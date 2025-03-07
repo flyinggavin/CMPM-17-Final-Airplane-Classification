@@ -220,7 +220,7 @@ loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 for i in range(EPOCHS):
-    for x, y in dataloader:
+    for x, y in dataloader_train:
         pred = model(x)
         print(x.shape)
         print(pred.shape)
