@@ -172,10 +172,6 @@ dfval = dfall.iloc[4590:5401, :] #excludes 5401
 my_dataset = MyDataset(dftrain)
 dataloader_train = DataLoader(my_dataset, batch_size=32, shuffle=True)
 
-for x, y in dataloader_train:
-     print(x.shape)
-     print(y.shape)
-
 #DATA LOADER FOR TEST
 my_dataset_test = MyDataset(dftest)
 dataloader_test = DataLoader(my_dataset_test, batch_size=32, shuffle=True)
