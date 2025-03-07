@@ -67,76 +67,60 @@ print("")
 
 #######COMBINED VAL WITH TRAIN TO MAKE FULL TRIAN DATA SET##############
 dftrain = pd.concat([dftrain, dfval], ignore_index=True)
-dfall = pd.concat([dftrain, dftest], ignore_index=True)
 
 
 #####REMOVE MANUFACTURES WE DONT WANT######
-#for entire data set
+
+#for test data set
 select = []
 row = 0
-for i in dfall.iterrows():
-    if (dfall.loc[row,"plane type"] == "Airbus" or dfall.loc[row,"plane type"] == "Boeing" or dfall.loc[row,"plane type"] == "Bombardier Aerospace" or dfall.loc[row,"plane type"] == "Cessna" or dfall.loc[row,"plane type"] == "Embraer" or dfall.loc[row,"plane type"] == "McDonnell Douglas"):
+for i in dftest.iterrows():
+    if (dftest.loc[row,"plane type"] == "Airbus" or dftest.loc[row,"plane type"] == "Boeing" or dftest.loc[row,"plane type"] == "Bombardier Aerospace" or dftest.loc[row,"plane type"] == "Cessna" or dftest.loc[row,"plane type"] == "Embraer" or dftest.loc[row,"plane type"] == "McDonnell Douglas"):
         select.append(True)
         row += 1
     else:
         select.append(False)
         row += 1
-dfall = dfall.loc[select]
+dftest = dftest.loc[select]
 
-# #for test data set
-# select = []
-# row = 0
-# for i in dftest.iterrows():
-#     if (dftest.loc[row,"plane type"] == "Airbus" or dftest.loc[row,"plane type"] == "Boeing" or dftest.loc[row,"plane type"] == "Bombardier Aerospace" or dftest.loc[row,"plane type"] == "Cessna" or dftest.loc[row,"plane type"] == "Embraer" or dftest.loc[row,"plane type"] == "McDonnell Douglas"):
-#         select.append(True)
-#         row += 1
-#     else:
-#         select.append(False)
-#         row += 1
-# dftest = dftest.loc[select]
+#for train data set
+select = []
+row = 0
+for i in dftrain.iterrows():
+    if (dftrain.loc[row,"plane type"] == "Airbus" or dftrain.loc[row,"plane type"] == "Boeing" or dftrain.loc[row,"plane type"] == "Bombardier Aerospace" or dftrain.loc[row,"plane type"] == "Cessna" or dftrain.loc[row,"plane type"] == "Embraer" or dftrain.loc[row,"plane type"] == "McDonnell Douglas"):
+        select.append(True)
+        row += 1
+    else:
+        select.append(False)
+        row += 1
+dftrain = dftrain.loc[select]
 
-# #for train data set
-# select = []
-# row = 0
-# for i in dftrain.iterrows():
-#     if (dftrain.loc[row,"plane type"] == "Airbus" or dftrain.loc[row,"plane type"] == "Boeing" or dftrain.loc[row,"plane type"] == "Bombardier Aerospace" or dftrain.loc[row,"plane type"] == "Cessna" or dftrain.loc[row,"plane type"] == "Embraer" or dftrain.loc[row,"plane type"] == "McDonnell Douglas"):
-#         select.append(True)
-#         row += 1
-#     else:
-#         select.append(False)
-#         row += 1
-# dftrain = dftrain.loc[select]
-# print("unique train vals:", (dftest["plane type"].unique()))
-# print("unique tests vals:", (dftest["plane type"].unique()))
-
-print("unique values for dfall:", (dfall["plane type"].unique()))
+print("unique train vals:", (dftest["plane type"].unique()))
+print("unique tests vals:", (dftest["plane type"].unique()))
 
 
-###FACOTIRIZE PLANE TYPES #### assigning a number to manufactuere 
-# dftrain["plane type"] = dftrain["plane type"].factorize()[0]
-# dftrain["filename"] = dftrain["filename"].astype(str)
-# print("FULL train data set: ")
-# print(dftrain.head())
-# print(dftrain.info())
+###FACOTIRIZE PLANE TYPES #### for training
+dftrain["plane type"] = dftrain["plane type"].factorize()[0]
+dftrain["filename"] = dftrain["filename"].astype(str)
+print("FULL train data set: ")
+print(dftrain.head())
+print(dftrain.info())
 
-# dftest["plane type"] = dftest["plane type"].factorize()[0]
-# dftest["filename"] = dftest["filename"].astype(str)
-
-
-dfall["plane type"] = dfall["plane type"].factorize()[0]
-dfall["filename"] = dfall["filename"].astype(str)
-print(dfall.shape[0]) # num of rows
-print(dfall.size) # tot num of elemnts 
+dftest["plane type"] = dftest["plane type"].factorize()[0]
+dftest["filename"] = dftest["filename"].astype(str)
 
 
-# #####PLOTTING DATA##############
-# # for i in range(1, 51):
-# #     plt.subplot(5, 10, i)
-# #     plt.imshow(Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/fgvc-aircraft-2013b/data/images/{df.loc[i, "filename"]}.jpg"))
-# #     plt.axis("off")
-# #     plt.title(dftest.loc[i, "Classes"])
-# # plt.tight_layout()
-# # plt.show()
+print(dftest.shape[0]) # num of rows
+print(dftest.size) # tot num of elemnts 
+
+#####PLOTTING DATA##############
+# for i in range(1, 51):
+#     plt.subplot(5, 10, i)
+#     plt.imshow(Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/fgvc-aircraft-2013b/data/images/{df.loc[i, "filename"]}.jpg"))
+#     plt.axis("off")
+#     plt.title(dftest.loc[i, "Classes"])
+# plt.tight_layout()
+# plt.show()
 
 ################IMAGE PROCESSING/ DATA LOADER###############
 class MyDataset(Dataset):
@@ -163,26 +147,54 @@ class MyDataset(Dataset):
         label = label.to_numpy(dtype="float64")
 
         return img, label
-
-dftrain = dfall.iloc[:3780,:] #70% of 5400 = 3780 
-dftest = dfall.iloc[3780:4590, :] #3780+810 = 4590
-dfval = dfall.iloc[4590:5401, :] #excludes 5401
-
-#DATA LOADER FOR TRAIN
+    
 my_dataset = MyDataset(dftrain)
-dataloader_train = DataLoader(my_dataset, batch_size=32, shuffle=True)
+dataloader = DataLoader(my_dataset, batch_size=32, shuffle=True)
 
-for x, y in dataloader_train:
-     print(x.shape)
-     print(y.shape)
+# for x, y in dataloader:
+#      print(x.shape)
+#      print(y.shape)
 
-#DATA LOADER FOR TEST
 my_dataset_test = MyDataset(dftest)
 dataloader_test = DataLoader(my_dataset_test, batch_size=32, shuffle=True)
 
-for x, y in dataloader_test:
-     print(x.shape)
-     print(y.shape)
-
+# for x, y in dataloader_test:
+#      print(x.shape)
+#      print(y.shape)
 
 #################CNN MODEL###############
+class airplaneCNN(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
+
+        self.relu = nn.ReLU()
+        self.pool = nn.MaxPool2d(2, 2)
+
+        self.linear1 = nn.Linear(32 * 1000 * 750, 1000)
+        self.linear2 = nn.Linear(1000, 2050)
+        self.linear3 = nn.Linear(2050, 10)
+
+    def forward(self, input):
+        input = self.conv1(input)
+        input = self.relu(input)
+        input = self.conv2(input)
+        input = self.relu(input)
+        input = self.pool(input)
+
+        input = self.conv3(input)
+        input = self.relu(input)
+        input = self.pool(input)
+
+        input = input.flatten(start_dim=1)
+        input = self.linear1(input)
+        input = self.relu(input)
+        input = self.linear2(input)
+        input = self.relu(input)
+        input = self.linear3(input)
+        input = self.relu(input)
+
+        return input
