@@ -132,7 +132,7 @@ class MyDataset(Dataset):
         return self.length
         
     def __getitem__(self, idx):
-        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/archive/fgvc-aircraft-2013b/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
+        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
         label = self.data.iloc[idx, [1]]
 
         transforms = v2.Compose([
@@ -140,7 +140,7 @@ class MyDataset(Dataset):
         v2.RandomRotation([-45, 45]),
         v2.RandomGrayscale(),
         v2.GaussianBlur(1),
-        v2.Resize([1000, 750])
+        v2.Resize([128, 128])
         ])
 
         img = transforms(img)
@@ -167,9 +167,9 @@ class airplaneCNN(nn.Module):
         self.relu = nn.ReLU()
         self.pool = nn.MaxPool2d(2, 2)
 
-        self.linear1 = nn.Linear(32 * 1000 * 750, 1000)
+        self.linear1 = nn.Linear(65536, 1000)
         self.linear2 = nn.Linear(1000, 2050)
-        self.linear3 = nn.Linear(2050, 10)
+        self.linear3 = nn.Linear(2050, 6)
 
     def forward(self, input):
         input = self.conv1(input)
@@ -201,10 +201,14 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 for i in range(EPOCHS):
     for x, y in dataloader:
         pred = model(x)
+        print(x.shape)
+        print(pred.shape)
+        print(y.shape)
         loss = loss_fn(pred, y)
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
+        print(loss)
         # ADD VALIDATION LATER HERE
             
     
