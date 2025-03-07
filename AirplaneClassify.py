@@ -1,6 +1,6 @@
 import pandas as pd
 import torch.nn as nn
-import torch.optim as optim
+import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import v2
 from sklearn.preprocessing import StandardScaler
@@ -151,16 +151,9 @@ class MyDataset(Dataset):
 my_dataset = MyDataset(dftrain)
 dataloader = DataLoader(my_dataset, batch_size=32, shuffle=True)
 
-# for x, y in dataloader:
-#      print(x.shape)
-#      print(y.shape)
 
 my_dataset_test = MyDataset(dftest)
 dataloader_test = DataLoader(my_dataset_test, batch_size=32, shuffle=True)
-
-# for x, y in dataloader_test:
-#      print(x.shape)
-#      print(y.shape)
 
 #################CNN MODEL###############
 class airplaneCNN(nn.Module):
@@ -198,3 +191,20 @@ class airplaneCNN(nn.Module):
         input = self.relu(input)
 
         return input
+
+EPOCHS = 10
+
+model = airplaneCNN()
+loss_fn = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+for i in range(EPOCHS):
+    for x, y in dataloader:
+        pred = model(x)
+        loss = loss_fn(pred, y)
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+        # ADD VALIDATION LATER HERE
+            
+    
