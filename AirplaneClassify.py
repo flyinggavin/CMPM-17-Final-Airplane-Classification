@@ -148,7 +148,7 @@ class MyDataset(Dataset):
         return self.length
         
     def __getitem__(self, idx):
-        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
+        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/archive/fgvc-aircraft-2013b/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
         label = self.data.iloc[idx, [1]]
 
         transforms = v2.Compose([
@@ -229,7 +229,7 @@ for i in range(EPOCHS):
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
-        print(loss)
+        print("Epoch", EPOCHS, " Loss: ", loss)
         # ADD VALIDATION LATER HERE
             
     
