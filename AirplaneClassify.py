@@ -122,8 +122,8 @@ print("unique values for dfall:", (dfall["plane type"].unique()))
 # dftest["plane type"] = dftest["plane type"].factorize()[0]
 # dftest["filename"] = dftest["filename"].astype(str)
 
+dfall = pd.get_dummies(dfall, columns=["plane type"])
 
-dfall["plane type"] = dfall["plane type"].factorize()[0]
 dfall["filename"] = dfall["filename"].astype(str)
 print(dfall.shape[0]) # num of rows
 print(dfall.size) # tot num of elemnts 
@@ -148,8 +148,8 @@ class MyDataset(Dataset):
         return self.length
         
     def __getitem__(self, idx):
-        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/archive/fgvc-aircraft-2013b/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
-        label = self.data.iloc[idx, [1]]
+        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
+        labels = self.data.iloc[idx, [1, 2, 3, 4, 5, 6]]
 
         transforms = v2.Compose([
         v2.ToTensor(),
@@ -160,9 +160,9 @@ class MyDataset(Dataset):
         ])
 
         img = transforms(img)
-        label = label.to_numpy(dtype="float64")
+        labels = labels.to_numpy(dtype="float64")
 
-        return img, label
+        return img, labels
 
 dftrain = dfall.iloc[:3780,:] #70% of 5400 = 3780 
 dftest = dfall.iloc[3780:4590, :] #3780+810 = 4590
