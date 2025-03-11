@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import v2
+from torch.optim.lr_scheduler import ExponentialLR
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import math
@@ -170,7 +171,7 @@ dfval = dfall.iloc[4590:5401, :] #excludes 5401
 
 #DATA LOADER FOR TRAIN
 my_dataset = MyDataset(dftrain)
-dataloader_train = DataLoader(my_dataset, batch_size=32, shuffle=True)
+dataloader_train = DataLoader(my_dataset, batch_size=64, shuffle=True)
 
 #DATA LOADER FOR TEST
 my_dataset_test = MyDataset(dftest)
@@ -217,19 +218,18 @@ EPOCHS = 10
 
 model = airplaneCNN()
 loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
+scheduler = ExponentialLR(optimizer, gamma=0.5)
 
 for i in range(EPOCHS):
     for x, y in dataloader_train:
         pred = model(x)
-        print(x.shape)
-        print(pred.shape)
-        print(y.shape)
         loss = loss_fn(pred, y)
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
-        print("Epoch", EPOCHS, " Loss: ", loss)
+        scheduler.step()
+        print("Epoch", i, " Loss: ", loss)
         # ADD VALIDATION LATER HERE
-            
+    
     
