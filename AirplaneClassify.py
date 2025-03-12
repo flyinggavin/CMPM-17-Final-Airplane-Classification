@@ -123,7 +123,7 @@ print("unique values for dfall:", (dfall["plane type"].unique()))
 # dftest["plane type"] = dftest["plane type"].factorize()[0]
 # dftest["filename"] = dftest["filename"].astype(str)
 
-dfall = pd.get_dummies(dfall, columns=["plane type"])
+dfall = pd.get_dummies(dfall, columns=["plane type"]) #ONE HOT ENCODED PLANE TYPE
 
 dfall["filename"] = dfall["filename"].astype(str)
 print(dfall.shape[0]) # num of rows
@@ -149,8 +149,8 @@ class MyDataset(Dataset):
         return self.length
         
     def __getitem__(self, idx):
-        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
-        labels = self.data.iloc[idx, [1, 2, 3, 4, 5, 6]]
+        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/archive/fgvc-aircraft-2013b/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
+        labels = self.data.iloc[idx, 1:7]
 
         transforms = v2.Compose([
         v2.ToTensor(),
@@ -186,17 +186,30 @@ class airplaneCNN(nn.Module):
         self.conv2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, padding=1)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
 
+
+        #activiations 
         self.relu = nn.ReLU()
         self.pool = nn.MaxPool2d(2, 2)
+        self.softmax = nn.Softmax(dim=1)
 
+        #Dropout 
+        self.dropout = nn.Dropout(p=0.5)
+
+        #Batch Norm
+        self.bn1 = nn.BatchNorm1d(128) #128 = number of features 
+        
+
+        #linear layers 
         self.linear1 = nn.Linear(65536, 1000)
         self.linear2 = nn.Linear(1000, 2050)
         self.linear3 = nn.Linear(2050, 6)
+
 
     def forward(self, input):
         input = self.conv1(input)
         input = self.relu(input)
         input = self.conv2(input)
+        input = self.dropout(input) #dropout 
         input = self.relu(input)
         input = self.pool(input)
 
@@ -206,11 +219,14 @@ class airplaneCNN(nn.Module):
 
         input = input.flatten(start_dim=1)
         input = self.linear1(input)
+        input = self.dropout(input) #dropout 
         input = self.relu(input)
         input = self.linear2(input)
+        input = self.dropout(input) #dropout 
         input = self.relu(input)
         input = self.linear3(input)
         input = self.relu(input)
+        input = self.softmax(input) #softmax
 
         return input
 
@@ -230,6 +246,7 @@ for i in range(EPOCHS):
         optimizer.zero_grad()
         scheduler.step()
         print("Epoch", i, " Loss: ", loss)
+        print("Pred:", pred, "Epoch", i, " Loss: ", loss)
         # ADD VALIDATION LATER HERE
     
     
