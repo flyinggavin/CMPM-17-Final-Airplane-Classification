@@ -1,14 +1,15 @@
 import pandas as pd
 import torch.nn as nn
-import torch.optim as optim
+import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import v2
+from torch.optim.lr_scheduler import ExponentialLR
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import math
 from PIL import Image
 from hidden import dataset_path, testTXT, dataset_path_train, trainTXT, dataset_path_val, valTXT
-
+import wandb
 
 ##########TEST DATA##################
 #ClEANING DATA SET
@@ -26,8 +27,13 @@ dftest = dftest.join(df_test_manufacturer)
 
 
 #removing the image/plane id from plane type colum
-dftest['plane type'] = dftest["plane type"].apply(lambda x:x[1:])
-dftest['plane type'] = dftest["plane type"].apply(lambda x:"".join(x))
+
+
+
+dftest['plane type'] = dftest["plane type"].apply(lambda x:x[1:]) #pattern of planetype coloum: [1514522, Boeing], removes first element
+dftest['plane type'] = dftest["plane type"].apply(lambda x:"".join(x)) #covert planetype colum: [Boeing], from a list into a string 
+
+print(dftest.head)
 
 dftest = dftest.drop(columns=["Classes", "Labels"]) #remove unnecessary coloums 
 
@@ -67,51 +73,40 @@ print("")
 
 #######COMBINED VAL WITH TRAIN TO MAKE FULL TRIAN DATA SET##############
 dftrain = pd.concat([dftrain, dfval], ignore_index=True)
+dfall = pd.concat([dftrain, dftest], ignore_index=True)
 
 
 #####REMOVE MANUFACTURES WE DONT WANT######
-
-#for test data set
+#for entire data set
 select = []
 row = 0
-for i in dftest.iterrows():
-    if (dftest.loc[row,"plane type"] == "Airbus" or dftest.loc[row,"plane type"] == "Boeing" or dftest.loc[row,"plane type"] == "Bombardier Aerospace" or dftest.loc[row,"plane type"] == "Cessna" or dftest.loc[row,"plane type"] == "Embraer" or dftest.loc[row,"plane type"] == "McDonnell Douglas"):
+for i in dfall.iterrows():
+    if (dfall.loc[row,"plane type"] == "Airbus" or dfall.loc[row,"plane type"] == "Boeing" or dfall.loc[row,"plane type"] == "Bombardier Aerospace" or dfall.loc[row,"plane type"] == "Cessna" or dfall.loc[row,"plane type"] == "Embraer" or dfall.loc[row,"plane type"] == "McDonnell Douglas"):
         select.append(True)
         row += 1
     else:
         select.append(False)
         row += 1
-dftest = dftest.loc[select]
-
-#for train data set
-select = []
-row = 0
-for i in dftrain.iterrows():
-    if (dftrain.loc[row,"plane type"] == "Airbus" or dftrain.loc[row,"plane type"] == "Boeing" or dftrain.loc[row,"plane type"] == "Bombardier Aerospace" or dftrain.loc[row,"plane type"] == "Cessna" or dftrain.loc[row,"plane type"] == "Embraer" or dftrain.loc[row,"plane type"] == "McDonnell Douglas"):
-        select.append(True)
-        row += 1
-    else:
-        select.append(False)
-        row += 1
-dftrain = dftrain.loc[select]
-
-print("unique train vals:", (dftest["plane type"].unique()))
-print("unique tests vals:", (dftest["plane type"].unique()))
+dfall = dfall.loc[select]
+print("unique values for dfall:", (dfall["plane type"].unique()))
 
 
-###FACOTIRIZE PLANE TYPES #### for training
-dftrain["plane type"] = dftrain["plane type"].factorize()[0]
-dftrain["filename"] = dftrain["filename"].astype(str)
-print("FULL train data set: ")
-print(dftrain.head())
-print(dftrain.info())
+###FACOTIRIZE PLANE TYPES #### assigning a number to manufactuere 
+# dftrain["plane type"] = dftrain["plane type"].factorize()[0]
+# dftrain["filename"] = dftrain["filename"].astype(str)
+# print("FULL train data set: ")
+# print(dftrain.head())
+# print(dftrain.info())
 
-dftest["plane type"] = dftest["plane type"].factorize()[0]
-dftest["filename"] = dftest["filename"].astype(str)
+# dftest["plane type"] = dftest["plane type"].factorize()[0]
+# dftest["filename"] = dftest["filename"].astype(str)
 
+dfall = pd.get_dummies(dfall, columns=["plane type"]) #ONE HOT ENCODED PLANE TYPE INSTEAD OF FACTORIZE
 
-print(dftest.shape[0]) # num of rows
-print(dftest.size) # tot num of elemnts 
+dfall["filename"] = dfall["filename"].astype(str)
+print(dfall.shape[0]) # num of rows
+print(dfall.size) # tot num of elemnts 
+
 
 #####PLOTTING DATA##############
 # for i in range(1, 51):
@@ -133,34 +128,49 @@ class MyDataset(Dataset):
         
     def __getitem__(self, idx):
         img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/archive/fgvc-aircraft-2013b/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
-        label = self.data.iloc[idx, [1]]
+        labels = self.data.iloc[idx, 1:7]
 
         transforms = v2.Compose([
         v2.ToTensor(),
         v2.RandomRotation([-45, 45]),
         v2.RandomGrayscale(),
         v2.GaussianBlur(1),
-        v2.Resize([1000, 750])
+        v2.Resize([750, 750]) #rescaled image bigger to us to view 
         ])
 
         img = transforms(img)
-        label = label.to_numpy(dtype="float64")
+        labels = labels.to_numpy(dtype="float64")
 
-        return img, label
-    
+        return img, labels
+
+# ########DISPLAY IMAGES WITH AUGMENTATIONS TEST#######
+# transforms = v2.Compose([
+#         v2.ToTensor(),
+#         v2.RandomRotation([-45, 45]),
+#         v2.RandomGrayscale(),
+#         v2.GaussianBlur(1),
+#         v2.Resize([750, 750]),
+#         v2.ToPILImage()
+#         ])
+# img1 = Image.open("CMPM-17-Final-Airplane-Classification/Final Project Data/archive/fgvc-aircraft-2013b/fgvc-aircraft-2013b/data/images/0034309.jpg")
+# img1 = transforms(img1)
+# img1.show()
+
+dftrain = dfall.iloc[:3780,:] #70% of 5400 = 3780 
+dftest = dfall.iloc[3780:4590, :] #3780+810 = 4590
+dfval = dfall.iloc[4590:5401, :] #excludes 5401
+
+#DATA LOADER FOR TRAIN
 my_dataset = MyDataset(dftrain)
-dataloader = DataLoader(my_dataset, batch_size=32, shuffle=True)
+dataloader_train = DataLoader(my_dataset, batch_size=64, shuffle=True)
 
-# for x, y in dataloader:
-#      print(x.shape)
-#      print(y.shape)
-
+#DATA LOADER FOR TEST
 my_dataset_test = MyDataset(dftest)
 dataloader_test = DataLoader(my_dataset_test, batch_size=32, shuffle=True)
 
-# for x, y in dataloader_test:
-#      print(x.shape)
-#      print(y.shape)
+#SPLIT VAL INTO INPUTS(IMAGE) AND OUTPUTS(MANUFACTUER) FOR COMPUTING VAL LOSS
+my_dataset_val = MyDataset(dfval)
+dataloader_val = DataLoader(my_dataset_val, batch_size = dfval.size, shuffle=True) #dfval.size= total entries (810 x7)
 
 #################CNN MODEL###############
 class airplaneCNN(nn.Module):
@@ -171,17 +181,30 @@ class airplaneCNN(nn.Module):
         self.conv2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, padding=1)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
 
+
+        #activiations 
         self.relu = nn.ReLU()
         self.pool = nn.MaxPool2d(2, 2)
+        self.softmax = nn.Softmax(dim=1)
 
-        self.linear1 = nn.Linear(32 * 1000 * 750, 1000)
+        #Dropout 
+        self.dropout = nn.Dropout(p=0.5)
+
+        #Batch Norm
+        self.bn1 = nn.BatchNorm1d(750) #750 = number of features 
+        
+
+        #linear layers 
+        self.linear1 = nn.Linear(65536, 1000)
         self.linear2 = nn.Linear(1000, 2050)
-        self.linear3 = nn.Linear(2050, 10)
+        self.linear3 = nn.Linear(2050, 6)
+
 
     def forward(self, input):
         input = self.conv1(input)
         input = self.relu(input)
         input = self.conv2(input)
+        input = self.dropout(input) #dropout 
         input = self.relu(input)
         input = self.pool(input)
 
@@ -191,11 +214,57 @@ class airplaneCNN(nn.Module):
 
         input = input.flatten(start_dim=1)
         input = self.linear1(input)
+        input = self.dropout(input) #dropout 
         input = self.relu(input)
         input = self.linear2(input)
+        input = self.dropout(input) #dropout 
         input = self.relu(input)
         input = self.linear3(input)
         input = self.relu(input)
+        input = self.softmax(input) #softmax
 
         return input
 
+EPOCHS = 10
+
+model = airplaneCNN()
+loss_fn = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
+scheduler = ExponentialLR(optimizer, gamma=0.8) #multiplication factor 
+
+run = wandb.init(project="airplane classification", name="run-1") #for wandb
+
+for i in range(EPOCHS):
+    print("Epoch", i,)
+    loss_sum = 0
+    for x, y in dataloader_train:
+        pred = model(x)
+        loss = loss_fn(pred, y)
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+        scheduler.step()
+        loss_sum += loss
+    #VALIDATION  LOSS: #DO we pass val data set into data loader?
+    with torch.no_grad():
+        for img_val, label_val in dataloader_val:
+            val_pred = model.forward(img_val)
+            val_loss = loss_fn(val_pred, label_val)
+            break
+    run.log({"avg train loss":loss_sum/3780, "validation loss":val_loss})
+
+        
+
+#use: print("Pred:", pred) to see softmax predictions 
+        
+        
+#RUNNING ON GPU, ON A POD (A BUILDING BLOCK OF A VM OF A CONTAINER (A COMPUTER))
+#kubectl get pods --> gets pods
+#kubectl create -f filename --> creates pods
+#join pod: kubectl exec <pod-name>  -it -- /bin/sh
+ 
+
+
+
+        
+    
