@@ -122,7 +122,7 @@ class MyDataset(Dataset):
         return self.length
         
     def __getitem__(self, idx):
-        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/archive/fgvc-aircraft-2013b/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
+        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
         labels = self.data.iloc[idx, 1:7]
 
         transforms = v2.Compose([
@@ -130,7 +130,7 @@ class MyDataset(Dataset):
         v2.RandomRotation([-45, 45]),
         v2.RandomGrayscale(),
         v2.GaussianBlur(1),
-        v2.Resize([128, 128])
+        v2.Resize([750, 750])
         ])
 
         img = transforms(img)
@@ -178,7 +178,7 @@ class airplaneCNN(nn.Module):
         self.dropout = nn.Dropout(p=0.5)
 
         #Batch Norm
-        self.bn1 = nn.BatchNorm1d(128) #128 = number of features 
+        self.bn1 = nn.BatchNorm1d(750) #750 = number of features 
         
 
         #linear layers 
@@ -223,6 +223,7 @@ run = wandb.init(project="airplane classification", name="run-1") #for wandb
 
 for i in range(EPOCHS):
     print("Epoch", i,)
+    loss_sum = 0
     for x, y in dataloader_train:
         pred = model(x)
         loss = loss_fn(pred, y)
@@ -230,14 +231,14 @@ for i in range(EPOCHS):
         optimizer.step()
         optimizer.zero_grad()
         scheduler.step()
-        #VALIDATION  LOSS: #DO we pass val data set into data loader?
-        with torch.no_grad():
-            for img_val, label_val in dataloader_val:
-                val_pred = model.forward(img_val)
-                val_loss = loss_fn(val_pred, label_val)
-                run.log({"train loss":loss, "validation loss":val_loss})
-                break
-
+        loss_sum += loss
+    #VALIDATION  LOSS: #DO we pass val data set into data loader?
+    with torch.no_grad():
+        for img_val, label_val in dataloader_val:
+            val_pred = model.forward(img_val)
+            val_loss = loss_fn(val_pred, label_val)
+            break
+    run.log({"avg train loss":loss_sum/3780, "validation loss":val_loss})
 
         
    
