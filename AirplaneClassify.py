@@ -221,6 +221,14 @@ scheduler = ExponentialLR(optimizer, gamma=0.8) #multiplication factor
 
 run = wandb.init(project="airplane classification", name="run-1") #for wandb
 
+if torch.cuda.is_available():
+    device = "cuda"
+    print("CUDA Available, using GPU")
+else:
+    device = "cpu"
+
+model.to(device)
+
 for i in range(EPOCHS):
     print("Epoch", i,)
     loss_sum = 0
