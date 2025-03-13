@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import math
 from PIL import Image
 from hidden import dataset_path, testTXT, dataset_path_train, trainTXT, dataset_path_val, valTXT
-
+import wandb
 
 ##########TEST DATA##################
 #ClEANING DATA SET
@@ -83,33 +83,6 @@ for i in dfall.iterrows():
         select.append(False)
         row += 1
 dfall = dfall.loc[select]
-
-# #for test data set
-# select = []
-# row = 0
-# for i in dftest.iterrows():
-#     if (dftest.loc[row,"plane type"] == "Airbus" or dftest.loc[row,"plane type"] == "Boeing" or dftest.loc[row,"plane type"] == "Bombardier Aerospace" or dftest.loc[row,"plane type"] == "Cessna" or dftest.loc[row,"plane type"] == "Embraer" or dftest.loc[row,"plane type"] == "McDonnell Douglas"):
-#         select.append(True)
-#         row += 1
-#     else:
-#         select.append(False)
-#         row += 1
-# dftest = dftest.loc[select]
-
-# #for train data set
-# select = []
-# row = 0
-# for i in dftrain.iterrows():
-#     if (dftrain.loc[row,"plane type"] == "Airbus" or dftrain.loc[row,"plane type"] == "Boeing" or dftrain.loc[row,"plane type"] == "Bombardier Aerospace" or dftrain.loc[row,"plane type"] == "Cessna" or dftrain.loc[row,"plane type"] == "Embraer" or dftrain.loc[row,"plane type"] == "McDonnell Douglas"):
-#         select.append(True)
-#         row += 1
-#     else:
-#         select.append(False)
-#         row += 1
-# dftrain = dftrain.loc[select]
-# print("unique train vals:", (dftest["plane type"].unique()))
-# print("unique tests vals:", (dftest["plane type"].unique()))
-
 print("unique values for dfall:", (dfall["plane type"].unique()))
 
 
@@ -123,7 +96,7 @@ print("unique values for dfall:", (dfall["plane type"].unique()))
 # dftest["plane type"] = dftest["plane type"].factorize()[0]
 # dftest["filename"] = dftest["filename"].astype(str)
 
-dfall = pd.get_dummies(dfall, columns=["plane type"]) #ONE HOT ENCODED PLANE TYPE
+dfall = pd.get_dummies(dfall, columns=["plane type"]) #ONE HOT ENCODED PLANE TYPE INSTEAD OF FACTORIZE
 
 dfall["filename"] = dfall["filename"].astype(str)
 print(dfall.shape[0]) # num of rows
@@ -176,6 +149,15 @@ dataloader_train = DataLoader(my_dataset, batch_size=64, shuffle=True)
 #DATA LOADER FOR TEST
 my_dataset_test = MyDataset(dftest)
 dataloader_test = DataLoader(my_dataset_test, batch_size=32, shuffle=True)
+
+#SPLIT VAL INTO INPUTS(IMAGE) AND OUTPUTS(MANUFACTUER) FOR COMPUTING VAL LOSS
+my_dataset_val = MyDataset(dfval)
+dataloader_val = DataLoader(my_dataset_val, batch_size = dfval.size, shuffle=True) #dfval.size= total entries (810 x7)
+
+# val_input = dfval.iloc[:,0].to_numpy()
+# val_output = dfval.iloc[:,1:].to_numpy()
+# val_input = torch.tensor(val_input)
+# val_output = torch.tensor(val_output)
 
 #################CNN MODEL###############
 class airplaneCNN(nn.Module):
@@ -235,9 +217,12 @@ EPOCHS = 10
 model = airplaneCNN()
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
-scheduler = ExponentialLR(optimizer, gamma=0.5)
+scheduler = ExponentialLR(optimizer, gamma=0.8) #multiplication factor 
+
+run = wandb.init(project="airplane classification", name="run-1") #for wandb
 
 for i in range(EPOCHS):
+    print("Epoch", i,)
     for x, y in dataloader_train:
         pred = model(x)
         loss = loss_fn(pred, y)
@@ -245,8 +230,23 @@ for i in range(EPOCHS):
         optimizer.step()
         optimizer.zero_grad()
         scheduler.step()
-        print("Epoch", i, " Loss: ", loss)
-        print("Pred:", pred, "Epoch", i, " Loss: ", loss)
-        # ADD VALIDATION LATER HERE
-    
+        #VALIDATION  LOSS: #DO we pass val data set into data loader?
+        with torch.no_grad():
+            for img_val, label_val in dataloader_val:
+                val_pred = model.forward(img_val)
+                val_loss = loss_fn(val_pred, label_val)
+                run.log({"train loss":loss, "validation loss":val_loss})
+                break
+
+
+        
+   
+       
+#print("Pred:", pred)
+        
+        
+
+
+
+        
     
