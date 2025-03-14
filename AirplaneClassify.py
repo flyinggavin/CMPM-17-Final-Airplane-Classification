@@ -4,12 +4,18 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import v2
 from torch.optim.lr_scheduler import ExponentialLR
-from sklearn.preprocessing import StandardScaler
+# from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import math
 from PIL import Image
 from hidden import dataset_path, testTXT, dataset_path_train, trainTXT, dataset_path_val, valTXT
 import wandb
+
+if torch.cuda.is_available():
+    device = "cuda"
+    print("CUDA Available, using GPU")
+else:
+    device = "cpu"
 
 ##########TEST DATA##################
 #ClEANING DATA SET
@@ -122,7 +128,7 @@ class MyDataset(Dataset):
         return self.length
         
     def __getitem__(self, idx):
-        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
+        img = Image.open(f"FinalProjectData/data/images/{self.data.iloc[idx, 0]}")
         labels = self.data.iloc[idx, 1:7]
 
         transforms = v2.Compose([
@@ -144,15 +150,15 @@ dfval = dfall.iloc[4590:5401, :] #excludes 5401
 
 #DATA LOADER FOR TRAIN
 my_dataset = MyDataset(dftrain)
-dataloader_train = DataLoader(my_dataset, batch_size=64, shuffle=True)
+dataloader_train = DataLoader(my_dataset, batch_size=16, shuffle=True)
 
 #DATA LOADER FOR TEST
 my_dataset_test = MyDataset(dftest)
-dataloader_test = DataLoader(my_dataset_test, batch_size=32, shuffle=True)
+dataloader_test = DataLoader(my_dataset_test, batch_size=16, shuffle=True)
 
 #SPLIT VAL INTO INPUTS(IMAGE) AND OUTPUTS(MANUFACTUER) FOR COMPUTING VAL LOSS
 my_dataset_val = MyDataset(dfval)
-dataloader_val = DataLoader(my_dataset_val, batch_size = dfval.size, shuffle=True) #dfval.size= total entries (810 x7)
+dataloader_val = DataLoader(my_dataset_val, batch_size = 16, shuffle=True) #dfval.size= total entries (810 x7)
 
 # val_input = dfval.iloc[:,0].to_numpy()
 # val_output = dfval.iloc[:,1:].to_numpy()
@@ -178,18 +184,19 @@ class airplaneCNN(nn.Module):
         self.dropout = nn.Dropout(p=0.5)
 
         #Batch Norm
-        self.bn1 = nn.BatchNorm1d(750) #750 = number of features 
+        # self.bn1 = nn.BatchNorm1d(750) #750 = number of features 
         
 
         #linear layers 
-        self.linear1 = nn.Linear(65536, 1000)
-        self.linear2 = nn.Linear(1000, 2050)
-        self.linear3 = nn.Linear(2050, 6)
+        self.linear1 = nn.Linear(553536, 1000)
+        self.linear2 = nn.Linear(1000, 250)
+        self.linear3 = nn.Linear(250, 6)
 
 
     def forward(self, input):
         input = self.conv1(input)
         input = self.relu(input)
+        input = self.pool(input)
         input = self.conv2(input)
         input = self.dropout(input) #dropout 
         input = self.relu(input)
@@ -219,27 +226,22 @@ loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
 scheduler = ExponentialLR(optimizer, gamma=0.8) #multiplication factor 
 
-run = wandb.init(project="airplane classification", name="run-1") #for wandb
-
-if torch.cuda.is_available():
-    device = "cuda"
-    print("CUDA Available, using GPU")
-else:
-    device = "cpu"
-
+run = wandb.init(project="airplane classification", name="run-gpu") #for wandb
 model.to(device)
 
 for i in range(EPOCHS):
     print("Epoch", i,)
     loss_sum = 0
     for x, y in dataloader_train:
+        x = x.to(device)
+        y = y.to(device)
         pred = model(x)
         loss = loss_fn(pred, y)
         loss.backward()
         optimizer.step()
-        optimizer.zero_grad()
+        optimizer.zero_grad(set_to_none=True)
         scheduler.step()
-        loss_sum += loss
+        loss_sum += loss.detach().item()
     #VALIDATION  LOSS: #DO we pass val data set into data loader?
     with torch.no_grad():
         for img_val, label_val in dataloader_val:
