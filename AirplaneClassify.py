@@ -205,6 +205,7 @@ class airplaneCNN(nn.Module):
         input = self.relu(input)
         input = self.conv2(input)
         input = self.dropout(input) #dropout 
+        input = self.bn1(input) #batchNorm
         input = self.relu(input)
         input = self.pool(input)
 
@@ -215,9 +216,11 @@ class airplaneCNN(nn.Module):
         input = input.flatten(start_dim=1)
         input = self.linear1(input)
         input = self.dropout(input) #dropout 
+        input = self.bn1(input) #batchNorm
         input = self.relu(input)
         input = self.linear2(input)
         input = self.dropout(input) #dropout 
+        input = self.bn1(input) #batchNorm
         input = self.relu(input)
         input = self.linear3(input)
         input = self.relu(input)
@@ -232,7 +235,7 @@ loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
 scheduler = ExponentialLR(optimizer, gamma=0.8) #multiplication factor 
 
-run = wandb.init(project="airplane classification", name="run-1") #for wandb
+run = wandb.init(project="airplane classification", name="run-1 w/b-norm") #for wandb
 
 for i in range(EPOCHS):
     print("Epoch", i,)
@@ -245,7 +248,7 @@ for i in range(EPOCHS):
         optimizer.zero_grad()
         scheduler.step()
         loss_sum += loss
-    #VALIDATION  LOSS: #DO we pass val data set into data loader?
+    #VALIDATION  LOSS: better way but works, only way to convert to proper dtype
     with torch.no_grad():
         for img_val, label_val in dataloader_val:
             val_pred = model.forward(img_val)
@@ -264,7 +267,12 @@ for i in range(EPOCHS):
 #join pod: kubectl exec <pod-name>  -it -- /bin/sh
  
 
-
+#check if using GPU: nvidia-smi, tells what GPU u have and what percentage, ignore processes section look at %
+#connecting wiht vscode, default opens /root/ but should open /pvc-files/
+#installing pip stuff create VE to prevent reinstalling 
+    #in FOLDER/.venv create virtual evniroment: python -m venv /pvc-file/FOLDER/.venv
+    #activate enrioment source /pvc-file/FOLDER/.venv/bin/activate 
+    #has to be activate every new terminal 
 
         
     
