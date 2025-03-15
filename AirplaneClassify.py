@@ -245,6 +245,8 @@ for i in range(EPOCHS):
     #VALIDATION  LOSS: #DO we pass val data set into data loader?
     with torch.no_grad():
         for img_val, label_val in dataloader_val:
+            img_val = img_val.to(device)
+            label_val = label_val.to(device)
             val_pred = model.forward(img_val)
             val_loss = loss_fn(val_pred, label_val)
             break
