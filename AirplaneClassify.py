@@ -150,16 +150,17 @@ dfval = dfall.iloc[4590:5401, :] #excludes 5401
 
 #DATA LOADER FOR TRAIN
 my_dataset = MyDataset(dftrain)
-dataloader_train = DataLoader(my_dataset, batch_size= 30, shuffle=True)
+dataloader_train = DataLoader(my_dataset, batch_size= 32, shuffle=True)
 
 #DATA LOADER FOR TEST
 my_dataset_test = MyDataset(dftest)
-dataloader_test = DataLoader(my_dataset_test, batch_size= 30, shuffle=True)
+dataloader_test = DataLoader(my_dataset_test, batch_size= 32, shuffle=True)
 
 #SPLIT VAL INTO INPUTS(IMAGE) AND OUTPUTS(MANUFACTUER) FOR COMPUTING VAL LOSS
 my_dataset_val = MyDataset(dfval)
-dataloader_val = DataLoader(my_dataset_val, batch_size = 30, shuffle=True) #dfval.size= total entries (810 x7)
+dataloader_val = DataLoader(my_dataset_val, batch_size = 32, shuffle=True) #dfval.size= total entries (810 x7)
 
+batchsize = 32
 # val_input = dfval.iloc[:,0].to_numpy()
 # val_output = dfval.iloc[:,1:].to_numpy()
 # val_input = torch.tensor(val_input)
@@ -232,9 +233,9 @@ model.to(device)
 for i in range(EPOCHS):
     print("Epoch", i,)
     loss_sum = 0
-    progress = 0
+    progress = 1
     for x, y in dataloader_train:
-        print("train progress:",(progress/(3780/30))*100,"%")
+        print("train progress:",(progress/(3780/batchsize))*100,"%")
         progress = progress + 1
         x = x.to(device)
         y = y.to(device)
@@ -253,25 +254,40 @@ for i in range(EPOCHS):
             val_pred = model.forward(img_val)
             val_loss = loss_fn(val_pred, label_val)
             break
-    print("avg train loss:", loss_sum/(3780/30), "validation loss:", val_loss)     #loss sum = (sum of losses)/(dftrain size/batch size)
-    run.log({"avg train loss":loss_sum/(3780/30), "validation loss":val_loss})
+    print("avg train loss:", loss_sum/(3780/batchsize), "validation loss:", val_loss)     #loss sum = (sum of losses)/(dftrain size/batch size)
+    run.log({"avg train loss":loss_sum/(3780/batchsize), "validation loss":val_loss})
     
 ####TEST ACCURACY#####
 correct = 0
 total = 0
-testpogress = 0
+testpogress = 1
 with torch.no_grad():
     for img_test, label_test in dataloader_test:
-        print("test progress:",(testpogress/(810/30))*100, "%")
+        print("test progress:",(testpogress/(810/batchsize))*100, "%")
+        testpogress += 1
         img_test = img_test.to(device)
         label_test = label_test.to(device)
         test_pred = model.forward(img_test)
+
+        # Convert one-hot labels to class indices
+        label_test = label_test.argmax(dim=1)  
+
+        # Extract predicted class index # Get the class index, ignore max value
+        _, test_pred = torch.max(test_pred, 1) #torch.max(outputs, 1) returns two values: Max Value and INdicies of Max Value, use _ when we want a unwanted value
+
+        # total size of each batch and number correct in each batch is summed throughout all batches 
         total += label_test.size(0)
-        if test_pred == label_test: 
-            correct += 1
-        
-accuracy = (correct/label_test)*100
-print("test accuracy: ", accuracy)
+        correct += (test_pred == label_test).sum().item() #adds 1 to correct sum if test pred = label/actual manufact
+        # print("pred:", test_pred)
+        # print("label:", label_test)
+        # print("correct:", correct)
+        # print("total:", total)
+        accuracy = (correct/total)*100
+        print("test accuracy: ", accuracy, "%")
+
+
+    
+
 
 
     #810 rows (imgs) x 7 col(manu) val and test
