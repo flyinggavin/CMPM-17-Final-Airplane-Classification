@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import v2
 from torch.optim.lr_scheduler import ExponentialLR
-from sklearn.preprocessing import StandardScaler
+# from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import math
 from PIL import Image
@@ -16,7 +16,6 @@ if torch.cuda.is_available():
     print("CUDA Available, using GPU")
 else:
     device = "cpu"
-
 
 ##########TEST DATA##################
 #ClEANING DATA SET
@@ -34,13 +33,8 @@ dftest = dftest.join(df_test_manufacturer)
 
 
 #removing the image/plane id from plane type colum
-
-
-
-dftest['plane type'] = dftest["plane type"].apply(lambda x:x[1:]) #pattern of planetype coloum: [1514522, Boeing], removes first element
-dftest['plane type'] = dftest["plane type"].apply(lambda x:"".join(x)) #covert planetype colum: [Boeing], from a list into a string 
-
-print(dftest.head)
+dftest['plane type'] = dftest["plane type"].apply(lambda x:x[1:])
+dftest['plane type'] = dftest["plane type"].apply(lambda x:"".join(x))
 
 dftest = dftest.drop(columns=["Classes", "Labels"]) #remove unnecessary coloums 
 
@@ -115,14 +109,14 @@ print(dfall.shape[0]) # num of rows
 print(dfall.size) # tot num of elemnts 
 
 
-#####PLOTTING DATA##############
-# for i in range(1, 51):
-#     plt.subplot(5, 10, i)
-#     plt.imshow(Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/fgvc-aircraft-2013b/data/images/{df.loc[i, "filename"]}.jpg"))
-#     plt.axis("off")
-#     plt.title(dftest.loc[i, "Classes"])
-# plt.tight_layout()
-# plt.show()
+# #####PLOTTING DATA##############
+# # for i in range(1, 51):
+# #     plt.subplot(5, 10, i)
+# #     plt.imshow(Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/fgvc-aircraft-2013b/data/images/{df.loc[i, "filename"]}.jpg"))
+# #     plt.axis("off")
+# #     plt.title(dftest.loc[i, "Classes"])
+# # plt.tight_layout()
+# # plt.show()
 
 ################IMAGE PROCESSING/ DATA LOADER###############
 class MyDataset(Dataset):
@@ -134,7 +128,7 @@ class MyDataset(Dataset):
         return self.length
         
     def __getitem__(self, idx):
-        img = Image.open(f"CMPM-17-Final-Airplane-Classification/Final Project Data/archive/fgvc-aircraft-2013b/fgvc-aircraft-2013b/data/images/{self.data.iloc[idx, 0]}")
+        img = Image.open(f"FinalProjectData/data/images/{self.data.iloc[idx, 0]}")
         labels = self.data.iloc[idx, 1:7]
 
         transforms = v2.Compose([
@@ -142,7 +136,7 @@ class MyDataset(Dataset):
         v2.RandomRotation([-45, 45]),
         v2.RandomGrayscale(),
         v2.GaussianBlur(1),
-        v2.Resize([750, 750]) #rescaled image bigger to us to view 
+        v2.Resize([750, 750])
         ])
 
         img = transforms(img)
@@ -150,34 +144,26 @@ class MyDataset(Dataset):
 
         return img, labels
 
-# ########DISPLAY IMAGES WITH AUGMENTATIONS TEST#######
-# transforms = v2.Compose([
-#         v2.ToTensor(),
-#         v2.RandomRotation([-45, 45]),
-#         v2.RandomGrayscale(),
-#         v2.GaussianBlur(1),
-#         v2.Resize([750, 750]),
-#         v2.ToPILImage()
-#         ])
-# img1 = Image.open("CMPM-17-Final-Airplane-Classification/Final Project Data/archive/fgvc-aircraft-2013b/fgvc-aircraft-2013b/data/images/0034309.jpg")
-# img1 = transforms(img1)
-# img1.show()
-
 dftrain = dfall.iloc[:3780,:] #70% of 5400 = 3780 
 dftest = dfall.iloc[3780:4590, :] #3780+810 = 4590
 dfval = dfall.iloc[4590:5401, :] #excludes 5401
 
 #DATA LOADER FOR TRAIN
 my_dataset = MyDataset(dftrain)
-dataloader_train = DataLoader(my_dataset, batch_size=64, shuffle=True)
+dataloader_train = DataLoader(my_dataset, batch_size= 32, shuffle=True)
 
 #DATA LOADER FOR TEST
 my_dataset_test = MyDataset(dftest)
-dataloader_test = DataLoader(my_dataset_test, batch_size=32, shuffle=True)
+dataloader_test = DataLoader(my_dataset_test, batch_size= 32, shuffle=True)
 
 #SPLIT VAL INTO INPUTS(IMAGE) AND OUTPUTS(MANUFACTUER) FOR COMPUTING VAL LOSS
 my_dataset_val = MyDataset(dfval)
-dataloader_val = DataLoader(my_dataset_val, batch_size = dfval.size, shuffle=True) #dfval.size= total entries (810 x7)
+dataloader_val = DataLoader(my_dataset_val, batch_size = 32, shuffle=True) #dfval.size= total entries (810 x7)
+
+# val_input = dfval.iloc[:,0].to_numpy()
+# val_output = dfval.iloc[:,1:].to_numpy()
+# val_input = torch.tensor(val_input)
+# val_output = torch.tensor(val_output)
 
 #################CNN MODEL###############
 class airplaneCNN(nn.Module):
@@ -246,7 +232,10 @@ model.to(device)
 for i in range(EPOCHS):
     print("Epoch", i,)
     loss_sum = 0
+    progress = 0
     for x, y in dataloader_train:
+        print(progress)
+        progress = progress + 1
         x = x.to(device)
         y = y.to(device)
         pred = model(x)
@@ -259,28 +248,27 @@ for i in range(EPOCHS):
     #VALIDATION  LOSS: #DO we pass val data set into data loader?
     with torch.no_grad():
         for img_val, label_val in dataloader_val:
+            img_val = img_val.to(device)
+            label_val = label_val.to(device)
             val_pred = model.forward(img_val)
             val_loss = loss_fn(val_pred, label_val)
             break
-    run.log({"avg train loss":loss_sum/32, "validation loss":val_loss})
+    #run.log({"avg train loss":loss_sum/3780, "validation loss":val_loss})
+    print("avg train loss:", loss_sum/(3780/32), "validation loss:", val_loss)     #loss sum = (sum of losses)/(dftrain size/batch size)
+
+
+
+    #810 rows (imgs) x 7 col(manu) val and test
+    #3780 x 7 train
 
         
-
-#use: print("Pred:", pred) to see softmax predictions 
+   
+       
+#print("Pred:", pred)
         
         
-#RUNNING ON GPU, ON A POD (A BUILDING BLOCK OF A VM OF A CONTAINER (A COMPUTER))
-#kubectl get pods --> gets pods
-#kubectl create -f filename --> creates pods
-#join pod: kubectl exec <pod-name>  -it -- /bin/sh
- 
 
-#check if using GPU: nvidia-smi, tells what GPU u have and what percentage, ignore processes section look at %
-#connecting wiht vscode, default opens /root/ but should open /pvc-files/
-#installing pip stuff create VE to prevent reinstalling 
-    #in FOLDER/.venv create virtual evniroment: python -m venv /pvc-file/FOLDER/.venv
-    #activate enrioment source /pvc-file/FOLDER/.venv/bin/activate 
-    #has to be activate every new terminal
+
 
         
     
