@@ -256,6 +256,7 @@ for i in range(EPOCHS):
             break
     print("avg train loss:", loss_sum/(3780/batchsize), "validation loss:", val_loss)     #loss sum = (sum of losses)/(dftrain size/batch size)
     run.log({"avg train loss":loss_sum/(3780/batchsize), "validation loss":val_loss})
+    torch.save(model.state_dict(), "airplane.pt")
     
 ####TEST ACCURACY#####
 correct = 0
