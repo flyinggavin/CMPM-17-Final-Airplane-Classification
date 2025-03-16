@@ -11,6 +11,13 @@ from PIL import Image
 from hidden import dataset_path, testTXT, dataset_path_train, trainTXT, dataset_path_val, valTXT
 import wandb
 
+if torch.cuda.is_available():
+    device = "cuda"
+    print("CUDA Available, using GPU")
+else:
+    device = "cpu"
+
+
 ##########TEST DATA##################
 #ClEANING DATA SET
 dftest = pd.read_csv(dataset_path) #test data 
@@ -191,21 +198,21 @@ class airplaneCNN(nn.Module):
         self.dropout = nn.Dropout(p=0.5)
 
         #Batch Norm
-        self.bn1 = nn.BatchNorm1d(750) #750 = number of features 
+        # self.bn1 = nn.BatchNorm1d(750) #750 = number of features 
         
 
         #linear layers 
-        self.linear1 = nn.Linear(65536, 1000)
-        self.linear2 = nn.Linear(1000, 2050)
-        self.linear3 = nn.Linear(2050, 6)
+        self.linear1 = nn.Linear(553536, 1000)
+        self.linear2 = nn.Linear(1000, 250)
+        self.linear3 = nn.Linear(250, 6)
 
 
     def forward(self, input):
         input = self.conv1(input)
         input = self.relu(input)
+        input = self.pool(input)
         input = self.conv2(input)
         input = self.dropout(input) #dropout 
-        input = self.bn1(input) #batchNorm
         input = self.relu(input)
         input = self.pool(input)
 
@@ -216,11 +223,9 @@ class airplaneCNN(nn.Module):
         input = input.flatten(start_dim=1)
         input = self.linear1(input)
         input = self.dropout(input) #dropout 
-        input = self.bn1(input) #batchNorm
         input = self.relu(input)
         input = self.linear2(input)
         input = self.dropout(input) #dropout 
-        input = self.bn1(input) #batchNorm
         input = self.relu(input)
         input = self.linear3(input)
         input = self.relu(input)
@@ -235,26 +240,29 @@ loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
 scheduler = ExponentialLR(optimizer, gamma=0.8) #multiplication factor 
 
-run = wandb.init(project="airplane classification", name="run-1 w/b-norm") #for wandb
+run = wandb.init(project="airplane classification", name="run-gpu") #for wandb
+model.to(device)
 
 for i in range(EPOCHS):
     print("Epoch", i,)
     loss_sum = 0
     for x, y in dataloader_train:
+        x = x.to(device)
+        y = y.to(device)
         pred = model(x)
         loss = loss_fn(pred, y)
         loss.backward()
         optimizer.step()
-        optimizer.zero_grad()
+        optimizer.zero_grad(set_to_none=True)
         scheduler.step()
-        loss_sum += loss
-    #VALIDATION  LOSS: better way but works, only way to convert to proper dtype
+        loss_sum += loss.detach().item()
+    #VALIDATION  LOSS: #DO we pass val data set into data loader?
     with torch.no_grad():
         for img_val, label_val in dataloader_val:
             val_pred = model.forward(img_val)
             val_loss = loss_fn(val_pred, label_val)
             break
-    run.log({"avg train loss":loss_sum/3780, "validation loss":val_loss})
+    run.log({"avg train loss":loss_sum/32, "validation loss":val_loss})
 
         
 
@@ -272,7 +280,7 @@ for i in range(EPOCHS):
 #installing pip stuff create VE to prevent reinstalling 
     #in FOLDER/.venv create virtual evniroment: python -m venv /pvc-file/FOLDER/.venv
     #activate enrioment source /pvc-file/FOLDER/.venv/bin/activate 
-    #has to be activate every new terminal 
+    #has to be activate every new terminal
 
         
     
