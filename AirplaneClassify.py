@@ -182,7 +182,7 @@ class airplaneCNN(nn.Module):
         self.softmax = nn.Softmax(dim=1)
 
         #Dropout 
-        self.dropout = nn.Dropout(p=0.5)
+        self.dropout = nn.Dropout(p=0.8)
 
         #Batch Norm
         # self.bn1 = nn.BatchNorm1d(750) #750 = number of features 
@@ -197,6 +197,7 @@ class airplaneCNN(nn.Module):
     def forward(self, input):
         input = self.conv1(input)
         input = self.relu(input)
+        input = self.dropout(input) #dropout 
         input = self.pool(input)
         input = self.conv2(input)
         input = self.dropout(input) #dropout 
@@ -224,7 +225,7 @@ EPOCHS = 10
 
 model = airplaneCNN()
 loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.08, weight_decay=0.01)
 scheduler = ExponentialLR(optimizer, gamma=0.8) #multiplication factor 
 
 run = wandb.init(project="airplane classification", name="run-gpu") #for wandb
